@@ -285,13 +285,34 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                 [ ( "exceptions"
                   , Encode.list identity
                         [ Encode.object
-                            [ ( "errorClass", Encode.string "ElmError" )
-                            , ( "message", Encode.string message )
+                            [ ( "errorClass", Encode.string message )
+
+                            -- , ( "message", Encode.string message ) any valuable data to report here? userImpact?
                             , ( "stacktrace", Encode.list identity [] )
                             ]
                         ]
                   )
                 , ( "context", Encode.string vscope )
+                , ( "severity", Encode.string (levelToString level) )
+
+                -- , ("user", Encode.object -- how do we capture user data in Rollbar?  make required?
+                -- initialize with client?
+                --     [
+                --         "id"
+                --         , "name"
+                --         , "email"
+                --     ])
+                , ( "metaData"
+                  , metadata
+                        |> Dict.insert "uuid" (Encode.string (Uuid.toString uuid))
+                        |> Encode.dict identity identity
+                  )
+                , ( "app"
+                  , Encode.object
+                        [ ( "version", Encode.string vcodeVersion )
+                        , ( "releaseStage", Encode.string venvironment )
+                        ]
+                  )
                 ]
             ]
       )
