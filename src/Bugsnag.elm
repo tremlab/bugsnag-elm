@@ -187,18 +187,13 @@ sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level mess
 
         body : Http.Body
         body =
-            toJsonBody vtoken vscope vcodeVersion venvironment level message uuid metadata
+            toJsonBody vscope vcodeVersion venvironment level message uuid metadata
     in
     { method = "POST"
     , headers =
         [ tokenHeader vtoken
+        , Http.header "Bugsnag-Payload-Version" "5"
 
-        -- , content-type application/json
-        -- , Bugsnag-Payload-Version 5
-        --         HEADERS
-        -- Content-Type:application/json
-        -- Bugsnag-Api-Key:YOUR-NOTIFIER-API-KEY - The API Key associated with the project. Informs Bugsnag which project has generated this error.
-        -- Bugsnag-Payload-Version:5 - The version number of the payload. Must be set to `5`.
         -- Bugsnag-Sent-At:2018-01-01T15:00:00.000Z - The time (in ISO 8601 format) that the event payload is being sent. This is only required when sending session details in the event payload. It is used to ensure that the reported session start times are standardized across reporting devices.
         ]
     , url = endpointUrl
@@ -273,43 +268,61 @@ uuidFrom (Token vtoken) (Scope vscope) (Environment venvironment) level message 
         |> Tuple.first
 
 
-toJsonBody : Token -> Scope -> CodeVersion -> Environment -> Level -> String -> Uuid -> Dict String Value -> Http.Body
-toJsonBody (Token vtoken) (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) level message uuid metadata =
+toJsonBody : Scope -> CodeVersion -> Environment -> Level -> String -> Uuid -> Dict String Value -> Http.Body
+toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) level message uuid metadata =
     -- See https://Bugsnag.com/docs/api/items_post/ for schema
-    [ ( "access_token", Encode.string vtoken )
-    , ( "data"
+    [ ( "payloadVersion", Encode.string "5" )
+    , ( "notifier"
       , Encode.object
-            [ ( "environment", Encode.string venvironment )
-            , ( "context", Encode.string vscope )
-            , ( "uuid", Uuid.encode uuid )
-            , ( "client"
-              , Encode.object
-                    [ ( "elm"
-                      , Encode.object
-                            [ ( "code_version", Encode.string vcodeVersion ) ]
-                      )
-                    ]
-              )
-            , ( "notifier"
-              , Encode.object
-                    [ ( "name", Encode.string "elm-Bugsnag" )
-                    , ( "version", Encode.string Bugsnag.Internal.version )
-                    ]
-              )
-            , ( "level", Encode.string (levelToString level) )
-            , ( "endpoint", Encode.string endpointUrl )
-            , ( "platform", Encode.string "browser" )
-            , ( "language", Encode.string "Elm" )
-            , ( "body"
-              , Encode.object
-                    [ ( "message"
-                      , Encode.object
-                            (( "body", Encode.string message ) :: Dict.toList metadata)
-                      )
-                    ]
-              )
+            [ ( "name", Encode.string "bugsnag-elm" )
+            , ( "version", Encode.string Bugsnag.Internal.version )
+            , ( "url", Encode.string "https://github.com/noredink/bugsnag-elm" )
             ]
       )
+    , ( "events"
+      , Encode.list identity
+            [ Encode.object
+                [ ( "exceptions"
+                  , Encode.list identity
+                        [ Encode.object
+                            [ ( "errorClass", Encode.string "ElmError" )
+                            , ( "message", Encode.string message )
+                            , ( "stacktrace", Encode.list identity [] )
+                            ]
+                        ]
+                  )
+                , ( "context", Encode.string vscope )
+                ]
+            ]
+      )
+
+    -- , ( "data"
+    --   , Encode.object
+    --         [ ( "environment", Encode.string venvironment )
+    --         , ( "context", Encode.string vscope )
+    --         , ( "uuid", Uuid.encode uuid )
+    --         , ( "client"
+    --           , Encode.object
+    --                 [ ( "elm"
+    --                   , Encode.object
+    --                         [ ( "code_version", Encode.string vcodeVersion ) ]
+    --                   )
+    --                 ]
+    --           )
+    --         , ( "level", Encode.string (levelToString level) )
+    --         , ( "endpoint", Encode.string endpointUrl )
+    --         , ( "platform", Encode.string "browser" )
+    --         , ( "language", Encode.string "Elm" )
+    --         , ( "body"
+    --           , Encode.object
+    --                 [ ( "message"
+    --                   , Encode.object
+    --                         (( "body", Encode.string message ) :: Dict.toList metadata)
+    --                   )
+    --                 ]
+    --           )
+    --         ]
+    --   )
     ]
         |> Encode.object
         |> Http.jsonBody
@@ -317,7 +330,7 @@ toJsonBody (Token vtoken) (Scope vscope) (CodeVersion vcodeVersion) (Environment
 
 tokenHeader : Token -> Http.Header
 tokenHeader (Token vtoken) =
-    Http.header "X-Bugsnag-Access-Token" vtoken
+    Http.header "Bugsnag-Api-Key" vtoken
 
 
 {-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
