@@ -1,6 +1,7 @@
 module Bugsnag exposing
     ( Bugsnag, Level(..), Token, token, Environment, environment, Scope, scope, CodeVersion, codeVersion
     , scoped, send
+    , User
     )
 
 {-| Send error reports to bugsnag.
@@ -84,6 +85,10 @@ type CodeVersion
     = CodeVersion String
 
 
+{-| A record of datapoints bugsnag's api can accept for user data.
+To display additional custom user data alongside these standard fields on the Bugsnag website,
+the custom data should be included in the metaData object in a user object.
+-}
 type alias User =
     { id : Int
     , username : String
@@ -152,6 +157,7 @@ Arguments:
   - `Environment` - e.g. `"production"`, `"development"`, `"staging"`, etc.
   - `Int` - maximum retry attempts - if the response is that the message was rate limited, try resending again (once per second) up to this many times. (0 means "do not retry.")
   - `Level` - severity, e.g. `Error`, `Warning`, `Debug`
+  - 'Maybe User' - if available, report user data (id, name, email)
   - `String` - message, e.g. "Auth server was down when user tried to sign in."
   - `Dict String Value` - arbitrary metadata, e.g. `{"username": "rtfeldman"}`
 
