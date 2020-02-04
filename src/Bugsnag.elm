@@ -155,7 +155,6 @@ Arguments:
   - `Token` - The [Bugsnag API token](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
   - `Scope` - Scoping messages essentially namespaces them. For example, this might be the name of the page the user was on when the message was sent.
   - `Environment` - e.g. `"production"`, `"development"`, `"staging"`, etc.
-  - `Int` - maximum retry attempts - if the response is that the message was rate limited, try resending again (once per second) up to this many times. (0 means "do not retry.")
   - `Level` - severity, e.g. `Error`, `Warning`, `Debug`
   - 'Maybe User' - if available, report user data (id, name, email)
   - `String` - message, e.g. "Auth server was down when user tried to sign in."
@@ -168,10 +167,19 @@ with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/lates
 responsible.
 
 -}
-send : Token -> CodeVersion -> Scope -> Environment -> Int -> Level -> Maybe User -> String -> Dict String Value -> Task Http.Error Uuid
-send vtoken vcodeVersion vscope venvironment maxRetryAttempts level maybeUser message metadata =
+send :
+    Token
+    -> CodeVersion
+    -> Scope
+    -> Environment
+    -> Level
+    -> Maybe User
+    -> String
+    -> Dict String Value
+    -> Task Http.Error Uuid
+send vtoken vcodeVersion vscope venvironment level maybeUser message metadata =
     Time.now
-        |> Task.andThen (sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata maybeUser)
+        |> Task.andThen (sendWithTime vtoken vcodeVersion vscope venvironment level message metadata maybeUser)
 
 
 
@@ -191,8 +199,18 @@ levelToString report =
             "warning"
 
 
-sendWithTime : Token -> CodeVersion -> Scope -> Environment -> Int -> Level -> String -> Dict String Value -> Maybe User -> Posix -> Task Http.Error Uuid
-sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata maybeUser time =
+sendWithTime :
+    Token
+    -> CodeVersion
+    -> Scope
+    -> Environment
+    -> Level
+    -> String
+    -> Dict String Value
+    -> Maybe User
+    -> Posix
+    -> Task Http.Error Uuid
+sendWithTime vtoken vcodeVersion vscope venvironment level message metadata maybeUser time =
     let
         uuid : Uuid
         uuid =
@@ -206,8 +224,6 @@ sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level mess
     , headers =
         [ tokenHeader vtoken
         , Http.header "Bugsnag-Payload-Version" "5"
-
-        -- Bugsnag-Sent-At:2018-01-01T15:00:00.000Z - The time (in ISO 8601 format) that the event payload is being sent. This is only required when sending session details in the event payload. It is used to ensure that the reported session start times are standardized across reporting devices.
         ]
     , url = endpointUrl
     , body = body
@@ -216,32 +232,6 @@ sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level mess
     }
         |> Http.task
         |> Task.map (\() -> uuid)
-        |> withRetry maxRetryAttempts
-
-
-withRetry : Int -> Task Http.Error a -> Task Http.Error a
-withRetry maxRetryAttempts task =
-    let
-        retry : Http.Error -> Task Http.Error a
-        retry httpError =
-            if maxRetryAttempts > 0 then
-                case httpError of
-                    Http.BadStatus statusCode ->
-                        if statusCode == 429 then
-                            -- Wait a bit between retries.
-                            Process.sleep (Time.posixToMillis retries.msDelayBetweenRetries |> toFloat)
-                                |> Task.andThen (\() -> withRetry (maxRetryAttempts - 1) task)
-
-                        else
-                            Task.fail httpError
-
-                    _ ->
-                        Task.fail httpError
-
-            else
-                Task.fail httpError
-    in
-    Task.onError retry task
 
 
 {-| Using the current system time as a random number seed generator, generate a
@@ -337,34 +327,6 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                 ]
             ]
       )
-
-    -- , ( "data"
-    --   , Encode.object
-    --         [ ( "environment", Encode.string venvironment )
-    --         , ( "context", Encode.string vscope )
-    --         , ( "uuid", Uuid.encode uuid )
-    --         , ( "client"
-    --           , Encode.object
-    --                 [ ( "elm"
-    --                   , Encode.object
-    --                         [ ( "code_version", Encode.string vcodeVersion ) ]
-    --                   )
-    --                 ]
-    --           )
-    --         , ( "level", Encode.string (levelToString level) )
-    --         , ( "endpoint", Encode.string endpointUrl )
-    --         , ( "platform", Encode.string "browser" )
-    --         , ( "language", Encode.string "Elm" )
-    --         , ( "body"
-    --           , Encode.object
-    --                 [ ( "message"
-    --                   , Encode.object
-    --                         (( "body", Encode.string message ) :: Dict.toList metadata)
-    --                   )
-    --                 ]
-    --           )
-    --         ]
-    --   )
     ]
         ++ userInfo
         |> Encode.object
@@ -378,9 +340,6 @@ tokenHeader (Token vtoken) =
 
 {-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
 [`Environment`](#Environment) and [`Scope`](#Scope) string.
-
-If the HTTP request to Bugsnag fails because of an exceeded rate limit (status
-code 429), this will retry the HTTP request once per second, up to 60 times.
 
     Bugsnag = Bugsnag.scoped "Page/Home.elm"
 
@@ -397,18 +356,9 @@ scoped vtoken vcodeVersion venvironment maybeUser scopeStr =
         vscope =
             Scope scopeStr
     in
-    { error = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Error maybeUser
-    , warning = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Warning maybeUser
-    , info = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Info maybeUser
-    }
-
-
-{-| Retry after waiting 1 sec, and default to retrying up to 60 times.
--}
-retries : { defaultMaxAttempts : Int, msDelayBetweenRetries : Posix }
-retries =
-    { defaultMaxAttempts = 60
-    , msDelayBetweenRetries = Time.millisToPosix 1000
+    { error = send vtoken vcodeVersion vscope venvironment Error maybeUser
+    , warning = send vtoken vcodeVersion vscope venvironment Warning maybeUser
+    , info = send vtoken vcodeVersion vscope venvironment Info maybeUser
     }
 
 
