@@ -55,7 +55,7 @@ type Level
 
 Create one using [`token`](#token).
 
-    Bugsnag.token "12c99de67a444c229fca100e0967486f"
+    Bugsnag.token "12345abcde........"
 
 -}
 type Token
@@ -124,7 +124,7 @@ type Environment
 
 {-| Create a [`Token`](#token)
 
-    Bugsnag.token "12c99de67a444c229fca100e0967486f"
+    Bugsnag.token "12345abcde....."
 
 -}
 token : String -> Token

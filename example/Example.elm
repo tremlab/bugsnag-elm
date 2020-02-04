@@ -12,10 +12,11 @@ import Task
 
 token : String
 token =
-    -- This is a demo token provide by Bugsnag for its demo user ?????????
-    -- You view and verify the result by visiting https://app.bugsnag.com/noredink/nri-elm
-    -- todo demo project??? public key to share???
-    "keyyyyyyyyyy"
+    -- The api key to the Bugsnag project you want to report errors to.
+    -- Bugsnag doesn't formally support Elm, so create a generic JS project.
+    -- Bugsnag offer free single-user accounts - go ahead and play around!
+    -- https://app.bugsnag.com
+    "12345abcde........"
 
 
 bugsnagClient : Bugsnag
