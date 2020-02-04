@@ -84,6 +84,13 @@ type CodeVersion
     = CodeVersion String
 
 
+type alias User =
+    { id : Int
+    , username : String
+    , email : String
+    }
+
+
 {-| Create a [`Scope`](#Scope).
 
     Bugsnag.scope "login"
@@ -155,10 +162,10 @@ with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/lates
 responsible.
 
 -}
-send : Token -> CodeVersion -> Scope -> Environment -> Int -> Level -> String -> Dict String Value -> Task Http.Error Uuid
-send vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata =
+send : Token -> CodeVersion -> Scope -> Environment -> Int -> Level -> Maybe User -> String -> Dict String Value -> Task Http.Error Uuid
+send vtoken vcodeVersion vscope venvironment maxRetryAttempts level maybeUser message metadata =
     Time.now
-        |> Task.andThen (sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata)
+        |> Task.andThen (sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata maybeUser)
 
 
 
@@ -178,8 +185,8 @@ levelToString report =
             "warning"
 
 
-sendWithTime : Token -> CodeVersion -> Scope -> Environment -> Int -> Level -> String -> Dict String Value -> Posix -> Task Http.Error Uuid
-sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata time =
+sendWithTime : Token -> CodeVersion -> Scope -> Environment -> Int -> Level -> String -> Dict String Value -> Maybe User -> Posix -> Task Http.Error Uuid
+sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level message metadata maybeUser time =
     let
         uuid : Uuid
         uuid =
@@ -187,7 +194,7 @@ sendWithTime vtoken vcodeVersion vscope venvironment maxRetryAttempts level mess
 
         body : Http.Body
         body =
-            toJsonBody vscope vcodeVersion venvironment level message uuid metadata
+            toJsonBody vscope vcodeVersion venvironment level message uuid maybeUser metadata
     in
     { method = "POST"
     , headers =
@@ -268,8 +275,24 @@ uuidFrom (Token vtoken) (Scope vscope) (Environment venvironment) level message 
         |> Tuple.first
 
 
-toJsonBody : Scope -> CodeVersion -> Environment -> Level -> String -> Uuid -> Dict String Value -> Http.Body
-toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) level message uuid metadata =
+toJsonBody : Scope -> CodeVersion -> Environment -> Level -> String -> Uuid -> Maybe User -> Dict String Value -> Http.Body
+toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) level message uuid maybeUser metadata =
+    let
+        userInfo =
+            case maybeUser of
+                Just user ->
+                    [ ( "user"
+                      , Encode.object
+                            [ ( "id", Encode.int user.id )
+                            , ( "name", Encode.string user.username )
+                            , ( "email", Encode.string user.email )
+                            ]
+                      )
+                    ]
+
+                Nothing ->
+                    []
+    in
     -- See https://Bugsnag.com/docs/api/items_post/ for schema
     [ ( "payloadVersion", Encode.string "5" )
     , ( "notifier"
@@ -294,14 +317,6 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                   )
                 , ( "context", Encode.string vscope )
                 , ( "severity", Encode.string (levelToString level) )
-
-                -- , ("user", Encode.object -- how do we capture user data in Rollbar?  make required?
-                -- initialize with client?
-                --     [
-                --         "id"
-                --         , "name"
-                --         , "email"
-                --     ])
                 , ( "metaData"
                   , metadata
                         |> Dict.insert "uuid" (Encode.string (Uuid.toString uuid))
@@ -345,6 +360,7 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
     --         ]
     --   )
     ]
+        ++ userInfo
         |> Encode.object
         |> Http.jsonBody
 
@@ -369,15 +385,15 @@ code 429), this will retry the HTTP request once per second, up to 60 times.
         |> Bugsnag.error "Unexpected payload from the hats API."
 
 -}
-scoped : Token -> CodeVersion -> Environment -> String -> Bugsnag
-scoped vtoken vcodeVersion venvironment scopeStr =
+scoped : Token -> CodeVersion -> Environment -> Maybe User -> String -> Bugsnag
+scoped vtoken vcodeVersion venvironment maybeUser scopeStr =
     let
         vscope =
             Scope scopeStr
     in
-    { error = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Error
-    , warning = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Warning
-    , info = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Info
+    { error = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Error maybeUser
+    , warning = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Warning maybeUser
+    , info = send vtoken vcodeVersion vscope venvironment retries.defaultMaxAttempts Info maybeUser
     }
 
 
