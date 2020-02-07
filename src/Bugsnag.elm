@@ -90,7 +90,7 @@ To display additional custom user data alongside these standard fields on the Bu
 the custom data should be included in the metaData object in a user object.
 -}
 type alias User =
-    { id : Int
+    { id : String
     , username : String
     , email : String
     }
@@ -279,7 +279,7 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                 Just user ->
                     [ ( "user"
                       , Encode.object
-                            [ ( "id", Encode.int user.id )
+                            [ ( "id", Encode.string user.id )
                             , ( "name", Encode.string user.username )
                             , ( "email", Encode.string user.email )
                             ]
@@ -301,8 +301,8 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
     , ( "events"
       , Encode.list identity
             [ Encode.object
-                [ ( "exceptions"
-                  , Encode.list identity
+                ([ ( "exceptions"
+                   , Encode.list identity
                         [ Encode.object
                             [ ( "errorClass", Encode.string message )
 
@@ -310,25 +310,28 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                             , ( "stacktrace", Encode.list identity [] )
                             ]
                         ]
-                  )
-                , ( "context", Encode.string vscope )
-                , ( "severity", Encode.string (levelToString level) )
-                , ( "metaData"
-                  , metadata
+                   )
+                 , ( "context", Encode.string vscope )
+                 , ( "severity", Encode.string (levelToString level) )
+                 , ( "metaData"
+                   , metadata
                         |> Dict.insert "uuid" (Encode.string (Uuid.toString uuid))
                         |> Encode.dict identity identity
-                  )
-                , ( "app"
-                  , Encode.object
+                   )
+                 , ( "app"
+                   , Encode.object
                         [ ( "version", Encode.string vcodeVersion )
                         , ( "releaseStage", Encode.string venvironment )
+
+                        -- , report as Elm error?  to separate from js, react? (metaData)
                         ]
-                  )
-                ]
+                   )
+                 ]
+                    ++ userInfo
+                )
             ]
       )
     ]
-        ++ userInfo
         |> Encode.object
         |> Http.jsonBody
 

@@ -14,7 +14,7 @@ token : String
 token =
     -- The api key to the Bugsnag project you want to report errors to.
     -- Bugsnag doesn't formally support Elm, so create a generic JS project.
-    -- Bugsnag offer free single-user accounts - go ahead and play around!
+    -- Bugsnag offers free single-user accounts - go ahead and play around!
     -- https://app.bugsnag.com
     "12345abcde........"
 
@@ -25,6 +25,12 @@ bugsnagClient =
         (Bugsnag.token token)
         (Bugsnag.codeVersion "0.0.1")
         (Bugsnag.environment "test")
+        (Just
+            { id = "42"
+            , username = "Leeroy Jenkins"
+            , email = "support@bugsnag.com"
+            }
+        )
         "Example"
 
 
