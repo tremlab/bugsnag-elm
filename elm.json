@@ -1,9 +1,9 @@
 {
     "type": "package",
     "name": "NoRedInk/bugsnag-elm",
-    "summary": "Send error reports to bugsanag",
+    "summary": "Send error reports to bugsnag",
     "license": "BSD-3-Clause",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "exposed-modules": [
         "Bugsnag"
     ],
