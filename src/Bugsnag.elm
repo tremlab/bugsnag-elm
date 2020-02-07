@@ -24,7 +24,6 @@ import Dict exposing (Dict)
 import Http
 import Json.Encode as Encode exposing (Value)
 import Murmur3
-import Process
 import Random
 import Task exposing (Task)
 import Time exposing (Posix)
@@ -87,7 +86,7 @@ type CodeVersion
 
 {-| A record of datapoints bugsnag's api can accept for user data.
 To display additional custom user data alongside these standard fields on the Bugsnag website,
-the custom data should be included in the metaData object in a user object.
+the custom data should be included in the 'metaData' object in a user object.
 -}
 type alias User =
     { id : String
@@ -244,7 +243,15 @@ only way we could expect the same UUID is if we were sending a duplicate
 message.
 
 -}
-uuidFrom : Token -> Scope -> Environment -> Level -> String -> Dict String Value -> Posix -> Uuid
+uuidFrom :
+    Token
+    -> Scope
+    -> Environment
+    -> Level
+    -> String
+    -> Dict String Value
+    -> Posix
+    -> Uuid
 uuidFrom (Token vtoken) (Scope vscope) (Environment venvironment) level message metadata time =
     let
         ms =
@@ -271,7 +278,21 @@ uuidFrom (Token vtoken) (Scope vscope) (Environment venvironment) level message 
         |> Tuple.first
 
 
-toJsonBody : Scope -> CodeVersion -> Environment -> Level -> String -> Uuid -> Maybe User -> Dict String Value -> Http.Body
+{-| Format all datapoints into JSON for Bugsnag's api.
+While there are many restrictions, note that `metaData`
+can include any key/value pairs (including nested) you'd like to report.
+See <https://Bugsnag.com/docs/api/items_post/> for schema
+-}
+toJsonBody :
+    Scope
+    -> CodeVersion
+    -> Environment
+    -> Level
+    -> String
+    -> Uuid
+    -> Maybe User
+    -> Dict String Value
+    -> Http.Body
 toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) level message uuid maybeUser metadata =
     let
         userInfo =
@@ -289,7 +310,6 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                 Nothing ->
                     []
     in
-    -- See https://Bugsnag.com/docs/api/items_post/ for schema
     [ ( "payloadVersion", Encode.string "5" )
     , ( "notifier"
       , Encode.object
@@ -306,7 +326,7 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                         [ Encode.object
                             [ ( "errorClass", Encode.string message )
 
-                            -- , ( "message", Encode.string message ) any valuable data to report here? userImpact?
+                            -- , ( "message", Encode.string message ) -- TODO: useful data to report here?
                             , ( "stacktrace", Encode.list identity [] )
                             ]
                         ]
@@ -322,8 +342,7 @@ toJsonBody (Scope vscope) (CodeVersion vcodeVersion) (Environment venvironment) 
                    , Encode.object
                         [ ( "version", Encode.string vcodeVersion )
                         , ( "releaseStage", Encode.string venvironment )
-
-                        -- , report as Elm error?  to separate from js, react? (metaData)
+                        , ( "type", Encode.string "elm" )
                         ]
                    )
                  ]
@@ -353,7 +372,13 @@ tokenHeader (Token vtoken) =
         |> Bugsnag.error "Unexpected payload from the hats API."
 
 -}
-scoped : Token -> CodeVersion -> Environment -> Maybe User -> String -> Bugsnag
+scoped :
+    Token
+    -> CodeVersion
+    -> Environment
+    -> Maybe User
+    -> String
+    -> Bugsnag
 scoped vtoken vcodeVersion venvironment maybeUser scopeStr =
     let
         vscope =
