@@ -1,7 +1,7 @@
 module Example exposing (main)
 
 import Browser
-import Bugsnag exposing (Bugsnag)
+import Bugsnag exposing (BugsnagClient)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (value)
@@ -19,19 +19,20 @@ token =
     "12345abcde........"
 
 
-bugsnagClient : Bugsnag
+bugsnagClient : BugsnagClient
 bugsnagClient =
     Bugsnag.scoped
-        (Bugsnag.token token)
-        (Bugsnag.codeVersion "0.0.1")
-        (Bugsnag.environment "test")
-        (Just
-            { id = "42"
-            , username = "Leeroy Jenkins"
-            , email = "support@bugsnag.com"
-            }
-        )
-        "Example"
+        { token = token
+        , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
+        , context = "Example"
+        , environment = "test"
+        , user =
+            Just
+                { id = "42"
+                , username = "Leeroy Jenkins"
+                , email = "support@bugsnag.com"
+                }
+        }
 
 
 
@@ -73,8 +74,8 @@ update msg model =
 
 
 info : String -> Cmd Msg
-info report =
-    Task.attempt (\_ -> NoOp) (bugsnagClient.info report Dict.empty)
+info message =
+    Task.attempt (\_ -> NoOp) (bugsnagClient.info message Dict.empty)
 
 
 json : Json.Encode.Value
