@@ -1,7 +1,7 @@
 module Example exposing (main)
 
 import Browser
-import Bugsnag exposing (Bugsnag)
+import Bugsnag exposing (BugsnagClient)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (value)
@@ -19,19 +19,20 @@ token =
     "12345abcde........"
 
 
-bugsnagClient : Bugsnag
+bugsnagClient : BugsnagClient
 bugsnagClient =
     Bugsnag.scoped
-        (Bugsnag.token token)
-        (Bugsnag.codeVersion "0.0.1")
-        (Bugsnag.environment "test")
-        (Just
-            { id = "42"
-            , username = "Leeroy Jenkins"
-            , email = "support@bugsnag.com"
-            }
-        )
-        "Example"
+        { token = token
+        , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
+        , context = "Example"
+        , environment = "test"
+        , user =
+            Just
+                { id = "42"
+                , username = "Leeroy Jenkins"
+                , email = "support@bugsnag.com"
+                }
+        }
 
 
 
@@ -39,13 +40,13 @@ bugsnagClient =
 
 
 type alias Model =
-    { report : String
+    { errorMessage : String
     }
 
 
 initialModel : Model
 initialModel =
-    { report = ""
+    { errorMessage = ""
     }
 
 
@@ -66,15 +67,15 @@ update msg model =
             ( model, Cmd.none )
 
         SetText text ->
-            ( { model | report = text }, Cmd.none )
+            ( { model | errorMessage = text }, Cmd.none )
 
         Send ->
-            ( model, info model.report )
+            ( model, info model.errorMessage )
 
 
 info : String -> Cmd Msg
-info report =
-    Task.attempt (\_ -> NoOp) (bugsnagClient.info report Dict.empty)
+info message =
+    Task.attempt (\_ -> NoOp) (bugsnagClient.info message Dict.empty)
 
 
 json : Json.Encode.Value
@@ -89,7 +90,7 @@ json =
 view : Model -> Html Msg
 view model =
     div []
-        [ input [ onInput SetText, value model.report ] []
+        [ input [ onInput SetText, value model.errorMessage ] []
         , button [ onClick Send ] [ text "Send to bugsnag" ]
         ]
 
