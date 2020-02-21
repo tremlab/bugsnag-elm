@@ -21,11 +21,12 @@ token =
 
 bugsnagClient : BugsnagClient
 bugsnagClient =
-    Bugsnag.scoped
+    Bugsnag.bugsnagClient
         { token = token
         , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
-        , context = "Example"
-        , environment = "test"
+        , context = "Example" -- location, e.g. "Page.Customer.Login.Main"
+        , releaseStage = "test"
+        , notifyReleaseStages = ["production", "staging", "test"] -- remove "test" to see how unreported errors log in your concosle.
         , user =
             Just
                 { id = "42"
@@ -76,11 +77,6 @@ update msg model =
 info : String -> Cmd Msg
 info message =
     Task.attempt (\_ -> NoOp) (bugsnagClient.info message Dict.empty)
-
-
-json : Json.Encode.Value
-json =
-    Json.Encode.object [ ( "environment", Json.Encode.string "test" ) ]
 
 
 
