@@ -1,6 +1,6 @@
 module Bugsnag exposing
     ( Severity(..)
-    , scoped, send
+    , bugsnagClient, notify
     , BugsnagClient, BugsnagConfig, User
     )
 
@@ -14,7 +14,7 @@ module Bugsnag exposing
 
 ## Types
 
-@docs scoped, send
+@docs bugsnagClient, notify
 
 -}
 
@@ -23,13 +23,12 @@ import Dict exposing (Dict)
 import Http
 import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
-import Time exposing (Posix)
 
 
 {-| Functions preapplied with access tokens, scopes, and environments,
 separated by [`Severity`](#Severity).
 
-Create one using [`scoped`](#scoped).
+Create one using [`bugsnagClient`](#bugsnagClient).
 
 -}
 type alias BugsnagClient =
@@ -40,8 +39,8 @@ type alias BugsnagClient =
 
 
 {-| Basic data needed to define the local client for a Bugsnag instance.
-Applies to all error reports that may occurr on the page,
-with error-specific data added later in `send`
+Applies to all error reports that may occur on the page,
+with error-specific data added later in `notify`
 
   - `token` - The [Bugsnag API token](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
   - codeVersion -
@@ -78,7 +77,7 @@ type alias User =
     }
 
 
-{-| Send a message to Bugsnag. [`scoped`](#scoped)
+{-| Send a message to Bugsnag. [`bugsnagClient`](#bugsnagClient)
 provides a nice wrapper around this.
 
 Arguments:
@@ -95,10 +94,25 @@ with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/lates
 responsible.
 
 -}
-send : BugsnagConfig -> Severity -> String -> Dict String Value -> Task Http.Error (Dict String Value)
-send bugsnagConfig severity message metaData =
-    Time.now
-        |> Task.andThen (sendWithTime bugsnagConfig severity message metaData)
+notify : BugsnagConfig -> Severity -> String -> Dict String Value -> Cmd Msg
+notify bugsnagConfig severity message metaData =
+    let
+        body : Http.Body
+        body =
+            toJsonBody bugsnagConfig severity message metaData
+    in
+    { method = "POST"
+    , headers =
+        [ Http.header "Bugsnag-Api-Key" bugsnagConfig.token
+        , Http.header "Bugsnag-Payload-Version" "5"
+        ]
+    , url = endpointUrl
+    , body = body
+    , expect = Http.expectWhatever (\_ -> GotBugsnagResponse)
+    , timeout = Nothing
+    , tracker = Nothing
+    }
+        |> Http.request
 
 
 
@@ -116,33 +130,6 @@ severityToString report =
 
         Warning ->
             "warning"
-
-
-sendWithTime :
-    BugsnagConfig
-    -> Severity
-    -> String
-    -> Dict String Value
-    -> Posix
-    -> Task Http.Error (Dict String Value)
-sendWithTime bugsnagConfig severity message metaData time =
-    let
-        body : Http.Body
-        body =
-            toJsonBody bugsnagConfig severity message metaData
-    in
-    { method = "POST"
-    , headers =
-        [ Http.header "Bugsnag-Api-Key" bugsnagConfig.token
-        , Http.header "Bugsnag-Payload-Version" "5"
-        ]
-    , url = endpointUrl
-    , body = body
-    , resolver = Http.stringResolver (\_ -> Ok ()) -- TODO
-    , timeout = Nothing
-    }
-        |> Http.task
-        |> Task.map (\() -> metaData)
 
 
 {-| Format all datapoints into JSON for Bugsnag's api.
@@ -220,7 +207,7 @@ toJsonBody bugsnagConfig severity message metaData =
 {-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
 [`Environment`](#Environment) and [`Scope`](#Scope) string.
 
-    Bugsnag = Bugsnag.scoped "Page/Home.elm"
+    Bugsnag = Bugsnag.bugsnagClient "Page/Home.elm"
 
     Bugsnag.debug "Hitting the hats API." Dict.empty
 
@@ -229,11 +216,11 @@ toJsonBody bugsnagConfig severity message metaData =
         |> Bugsnag.error "Unexpected payload from the hats API."
 
 -}
-scoped : BugsnagConfig -> BugsnagClient
-scoped bugsnagConfig =
-    { error = send bugsnagConfig Error
-    , warning = send bugsnagConfig Warning
-    , info = send bugsnagConfig Info
+bugsnagClient : BugsnagConfig -> BugsnagClient
+bugsnagClient bugsnagConfig =
+    { error = notify bugsnagConfig Error
+    , warning = notify bugsnagConfig Warning
+    , info = notify bugsnagConfig Info
     }
 
 
