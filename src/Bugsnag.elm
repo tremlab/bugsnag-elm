@@ -1,7 +1,6 @@
 module Bugsnag exposing
-    ( Severity(..)
+    ( BugsnagClient, BugsnagConfig, User, Severity(..)
     , bugsnagClient, notify
-    , BugsnagClient, BugsnagConfig, User
     )
 
 {-| Send error reports to bugsnag.
@@ -24,16 +23,16 @@ import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
 
 
-{-| Functions preapplied with access tokens, scopes, and environments,
+{-| Functions preapplied with access tokens, scopes, and releaseStages,
 separated by [`Severity`](#Severity).
 
 Create one using [`bugsnagClient`](#bugsnagClient).
 
 -}
 type alias BugsnagClient =
-    { error : String -> Dict String Value -> Task Http.Error (Dict String Value)
-    , warning : String -> Dict String Value -> Task Http.Error (Dict String Value)
-    , info : String -> Dict String Value -> Task Http.Error (Dict String Value)
+    { error : String -> Dict String Value -> Task Http.Error ()
+    , warning : String -> Dict String Value -> Task Http.Error ()
+    , info : String -> Dict String Value -> Task Http.Error ()
     }
 
 
@@ -44,7 +43,8 @@ with error-specific data added later in `notify`
   - `token` - The [Bugsnag API token](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
   - codeVersion -
   - `context` - Scoping messages essentially namespaces them. For example, this might be the name of the page the user was on when the message was sent.
-  - `environment` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
+  - `releaseStage` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
+  - `notifyReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to simply log in console (e.g. "dev"). Empty list will report ALL error stages.
   - 'user' - if available, report default user data (id, name, email)
 
 -}
@@ -52,7 +52,8 @@ type alias BugsnagConfig =
     { token : String
     , codeVersion : String
     , context : String
-    , environment : String
+    , releaseStage : String
+    , notifyReleaseStages : List String
     , user : Maybe User
     }
 
@@ -76,6 +77,26 @@ type alias User =
     }
 
 
+{-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
+[`Environment`](#Environment) and [`Scope`](#Scope) string.
+
+    Bugsnag = Bugsnag.bugsnagClient "Page/Home.elm"
+
+    Bugsnag.debug "Hitting the hats API." Dict.empty
+
+    [ ( "Payload", toString payload ) ]
+        |> Dict.fromList
+        |> Bugsnag.error "Unexpected payload from the hats API."
+
+-}
+bugsnagClient : BugsnagConfig -> BugsnagClient
+bugsnagClient bugsnagConfig =
+    { error = notify bugsnagConfig Error
+    , warning = notify bugsnagConfig Warning
+    , info = notify bugsnagConfig Info
+    }
+
+
 {-| Send a message to Bugsnag. [`bugsnagClient`](#bugsnagClient)
 provides a nice wrapper around this.
 
@@ -93,29 +114,56 @@ with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/lates
 responsible.
 
 -}
-notify : BugsnagConfig -> Severity -> String -> Dict String Value -> Cmd Msg
+notify : BugsnagConfig -> Severity -> String -> Dict String Value -> Task Http.Error ()
 notify bugsnagConfig severity message metaData =
     let
         body : Http.Body
         body =
             toJsonBody bugsnagConfig severity message metaData
+
+        shouldSend =
+            List.isEmpty bugsnagConfig.notifyReleaseStages
+                || List.member bugsnagConfig.releaseStage bugsnagConfig.notifyReleaseStages
     in
-    { method = "POST"
-    , headers =
-        [ Http.header "Bugsnag-Api-Key" bugsnagConfig.token
-        , Http.header "Bugsnag-Payload-Version" "5"
-        ]
-    , url = endpointUrl
-    , body = body
-    , expect = Http.expectWhatever (\_ -> GotBugsnagResponse)
-    , timeout = Nothing
-    , tracker = Nothing
-    }
-        |> Http.request
+    case shouldSend of
+        True ->
+            { method = "POST"
+            , headers =
+                [ Http.header "Bugsnag-Api-Key" bugsnagConfig.token
+                , Http.header "Bugsnag-Payload-Version" "5"
+                ]
+            , url = endpointUrl
+            , body = body
+            , resolver = Http.stringResolver resolveNotify
+            , timeout = Nothing
+            }
+                |> Http.task
+
+        False ->
+            Task.succeed ()
 
 
 
 -- INTERNAL --
+
+
+resolveNotify : Http.Response String -> Result Http.Error ()
+resolveNotify response =
+    case response of
+        Http.BadUrl_ url ->
+            Err (Http.BadUrl url)
+
+        Http.Timeout_ ->
+            Err Http.Timeout
+
+        Http.NetworkError_ ->
+            Err Http.NetworkError
+
+        Http.BadStatus_ metadata body ->
+            Err (Http.BadStatus metadata.statusCode)
+
+        Http.GoodStatus_ _ _ ->
+            Ok ()
 
 
 severityToString : Severity -> String
@@ -193,7 +241,7 @@ toJsonBody bugsnagConfig severity message metaData =
                  , ( "app"
                    , Encode.object
                         [ ( "version", Encode.string bugsnagConfig.codeVersion )
-                        , ( "releaseStage", Encode.string bugsnagConfig.environment )
+                        , ( "releaseStage", Encode.string bugsnagConfig.releaseStage )
                         , ( "type", Encode.string "elm" )
                         ]
                    )
@@ -205,26 +253,6 @@ toJsonBody bugsnagConfig severity message metaData =
     ]
         |> Encode.object
         |> Http.jsonBody
-
-
-{-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
-[`Environment`](#Environment) and [`Scope`](#Scope) string.
-
-    Bugsnag = Bugsnag.bugsnagClient "Page/Home.elm"
-
-    Bugsnag.debug "Hitting the hats API." Dict.empty
-
-    [ ( "Payload", toString payload ) ]
-        |> Dict.fromList
-        |> Bugsnag.error "Unexpected payload from the hats API."
-
--}
-bugsnagClient : BugsnagConfig -> BugsnagClient
-bugsnagClient bugsnagConfig =
-    { error = notify bugsnagConfig Error
-    , warning = notify bugsnagConfig Warning
-    , info = notify bugsnagConfig Info
-    }
 
 
 endpointUrl : String
