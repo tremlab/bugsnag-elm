@@ -18,7 +18,6 @@ module Bugsnag exposing
 
 -}
 
-import Bugsnag.Internal
 import Dict exposing (Dict)
 import Http
 import Json.Encode as Encode exposing (Value)
@@ -132,6 +131,10 @@ severityToString report =
             "warning"
 
 
+bugsnagElmVersion =
+    "1.0.0"
+
+
 {-| Format all datapoints into JSON for Bugsnag's api.
 While there are many restrictions, note that `metaData`
 can include any key/value pairs (including nested) you'd like to report.
@@ -164,7 +167,7 @@ toJsonBody bugsnagConfig severity message metaData =
     , ( "notifier"
       , Encode.object
             [ ( "name", Encode.string "bugsnag-elm" )
-            , ( "version", Encode.string Bugsnag.Internal.version )
+            , ( "version", Encode.string bugsnagElmVersion )
             , ( "url", Encode.string "https://github.com/noredink/bugsnag-elm" )
             ]
       )
