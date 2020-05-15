@@ -17,7 +17,11 @@ Once you have an account, create a generic frontend JavaScript project, and copy
 
 After you have successfully sent your first error report to bugsnag and got the hang of the dashboard, you can follow the example app's pattern to start adding bugsnag reports in your own project! 🎉
 
-Although bugsnag does not offically support Elm, they have amazing [documentation](https://docs.bugsnag.com/) and support. ♥️ And of course, ask questions or offer suggestions here!
+Although bugsnag does not officially support Elm, they have amazing [documentation](https://docs.bugsnag.com/) and support. ♥️ And of course, ask questions or offer suggestions here!
+
+### Pattern
+Although, underneath the hood, BugsnagElm constructs an HTTP POST to send directly to bugnag's API, the package is modelled on the general syntax of a bugsnag notifier, so that it will be intuitive to switch between notifiers (you should use bugsnag on your backend too!) BugsnagElm follows bugsnag-js v7.0 syntax.
+
 
 ### Development
 
