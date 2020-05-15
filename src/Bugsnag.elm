@@ -122,8 +122,8 @@ notify bugsnagConfig severity message metaData =
             toJsonBody bugsnagConfig severity message metaData
 
         shouldSend =
-            List.isEmpty bugsnagConfig.notifyReleaseStages
-                || List.member bugsnagConfig.releaseStage bugsnagConfig.notifyReleaseStages
+            List.isEmpty bugsnagConfig.enabledReleaseStages
+                || List.member bugsnagConfig.releaseStage bugsnagConfig.enabledReleaseStages
     in
     case shouldSend of
         True ->
