@@ -1,7 +1,7 @@
 module Example exposing (main)
 
 import Browser
-import Bugsnag exposing (BugsnagClient)
+import BugsnagElm exposing (BugsnagClient)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (value)

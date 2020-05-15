@@ -1,4 +1,4 @@
-module Bugsnag exposing
+module BugsnagElm exposing
     ( BugsnagClient, BugsnagConfig, User, Severity(..)
     , bugsnagClient, notify
     )
@@ -36,7 +36,7 @@ type alias BugsnagClient =
     }
 
 
-{-| Basic data needed to define the local client for a Bugsnag instance.
+{-| Basic data needed to define the local client for a BugsnagElm instance.
 Applies to all error reports that may occur on the page,
 with error-specific data added later in `notify`
 
@@ -44,7 +44,7 @@ with error-specific data added later in `notify`
   - codeVersion -
   - `context` - Scoping messages essentially namespaces them. For example, this might be the name of the page the user was on when the message was sent.
   - `releaseStage` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
-  - `notifyReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to simply log in console (e.g. "dev"). Empty list will report ALL error stages.
+  - `enabledReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to simply log in console (e.g. "dev"). Empty list will report ALL error stages.
   - 'user' - if available, report default user data (id, name, email)
 
 -}
@@ -53,12 +53,12 @@ type alias BugsnagConfig =
     , codeVersion : String
     , context : String
     , releaseStage : String
-    , notifyReleaseStages : List String
+    , enabledReleaseStages : List String
     , user : Maybe User
     }
 
 
-{-| Severity levels - Bugsnag only accepts these three.
+{-| Severity levels - bugsnag only accepts these three.
 -}
 type Severity
     = Error
@@ -183,10 +183,10 @@ bugsnagElmVersion =
     "1.0.0"
 
 
-{-| Format all datapoints into JSON for Bugsnag's api.
+{-| Format all datapoints into JSON for bugsnag's api.
 While there are many restrictions, note that `metaData`
 can include any key/value pairs (including nested) you'd like to report.
-See <https://Bugsnag.com/docs/api/items_post/> for schema
+See <https://bugsnag.com/docs/api/items_post/> for schema
 -}
 toJsonBody :
     BugsnagConfig
