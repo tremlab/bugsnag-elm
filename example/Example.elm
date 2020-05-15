@@ -19,8 +19,8 @@ token =
     "12345abcde........"
 
 
-Bugsnag : Bugsnag
-Bugsnag =
+bugsnag : Bugsnag
+bugsnag =
     BugsnagElm.start
         { token = token
         , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
@@ -76,7 +76,7 @@ update msg model =
 
 info : String -> Cmd Msg
 info message =
-    Task.attempt (\_ -> NoOp) (Bugsnag.info message Dict.empty)
+    Task.attempt (\_ -> NoOp) (bugsnag.info message Dict.empty)
 
 
 
