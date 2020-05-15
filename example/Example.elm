@@ -1,7 +1,7 @@
 module Example exposing (main)
 
 import Browser
-import BugsnagElm exposing (BugsnagClient)
+import BugsnagElm exposing (Bugsnag)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (value)
@@ -19,7 +19,7 @@ token =
     "12345abcde........"
 
 
-Bugsnag : BugsnagClient
+Bugsnag : Bugsnag
 Bugsnag =
     BugsnagElm.start
         { token = token

@@ -1,5 +1,5 @@
 module BugsnagElm exposing
-    ( BugsnagClient, BugsnagConfig, User, Severity(..)
+    ( Bugsnag, BugsnagConfig, User, Severity(..)
     , start, notify
     )
 
@@ -8,7 +8,7 @@ module BugsnagElm exposing
 
 ## Types
 
-@docs BugsnagClient, BugsnagConfig, User, Severity
+@docs Bugsnag, BugsnagConfig, User, Severity
 
 
 ## Types
@@ -29,7 +29,7 @@ separated by [`Severity`](#Severity).
 Create one using [`start`](#start).
 
 -}
-type alias BugsnagClient =
+type alias Bugsnag =
     { error : String -> Dict String Value -> Task Http.Error ()
     , warning : String -> Dict String Value -> Task Http.Error ()
     , info : String -> Dict String Value -> Task Http.Error ()
@@ -89,7 +89,7 @@ type alias User =
         |> Bugsnag.error "Unexpected payload from the hats API."
 
 -}
-start : BugsnagConfig -> BugsnagClient
+start : BugsnagConfig -> Bugsnag
 start bugsnagConfig =
     { error = notify bugsnagConfig Error
     , warning = notify bugsnagConfig Warning
