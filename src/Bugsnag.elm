@@ -68,7 +68,7 @@ type Severity
 
 {-| A record of datapoints bugsnag's api can accept for user data.
 To display additional custom user data alongside these standard fields on the Bugsnag website,
-the custom data should be included in the 'metaData' object in a `user` object.
+the custom data should be included in the 'metadata' object in a `user` object.
 -}
 type alias User =
     { id : String
@@ -105,7 +105,7 @@ Arguments:
   - `BugsnagConfig`
   - `Severity` - severity, e.g. `Error`, `Warning`, `Debug`
   - `String` - message, e.g. "Auth server was down when user tried to sign in."
-  - `Dict String Value` - arbitrary metaData, e.g. \`{"accountType": "premium"}
+  - `Dict String Value` - arbitrary metadata, e.g. \`{"accountType": "premium"}
 
 If the message was successfully sent to Bugsnag
 
@@ -115,11 +115,11 @@ responsible.
 
 -}
 notify : BugsnagConfig -> Severity -> String -> Dict String Value -> Task Http.Error ()
-notify bugsnagConfig severity message metaData =
+notify bugsnagConfig severity message metadata =
     let
         body : Http.Body
         body =
-            toJsonBody bugsnagConfig severity message metaData
+            toJsonBody bugsnagConfig severity message metadata
 
         shouldSend =
             List.isEmpty bugsnagConfig.enabledReleaseStages
@@ -184,7 +184,7 @@ bugsnagElmVersion =
 
 
 {-| Format all datapoints into JSON for bugsnag's api.
-While there are many restrictions, note that `metaData`
+While there are many restrictions, note that `metadata`
 can include any key/value pairs (including nested) you'd like to report.
 See <https://bugsnag.com/docs/api/items_post/> for schema
 -}
@@ -194,7 +194,7 @@ toJsonBody :
     -> String
     -> Dict String Value
     -> Http.Body
-toJsonBody bugsnagConfig severity message metaData =
+toJsonBody bugsnagConfig severity message metadata =
     let
         userInfo =
             case bugsnagConfig.user of
@@ -234,8 +234,8 @@ toJsonBody bugsnagConfig severity message metaData =
                    )
                  , ( "context", Encode.string bugsnagConfig.context )
                  , ( "severity", Encode.string (severityToString severity) )
-                 , ( "metaData"
-                   , metaData
+                 , ( "metadata"
+                   , metadata
                         |> Encode.dict identity identity
                    )
                  , ( "app"
