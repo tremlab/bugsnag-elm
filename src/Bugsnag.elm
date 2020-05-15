@@ -1,6 +1,6 @@
 module BugsnagElm exposing
     ( BugsnagClient, BugsnagConfig, User, Severity(..)
-    , bugsnagClient, notify
+    , start, notify
     )
 
 {-| Send error reports to bugsnag.
@@ -13,7 +13,7 @@ module BugsnagElm exposing
 
 ## Types
 
-@docs bugsnagClient, notify
+@docs start, notify
 
 -}
 
@@ -26,7 +26,7 @@ import Task exposing (Task)
 {-| Functions preapplied with access tokens, scopes, and releaseStages,
 separated by [`Severity`](#Severity).
 
-Create one using [`bugsnagClient`](#bugsnagClient).
+Create one using [`start`](#start).
 
 -}
 type alias BugsnagClient =
@@ -80,7 +80,7 @@ type alias User =
 {-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
 [`Environment`](#Environment) and [`Scope`](#Scope) string.
 
-    Bugsnag = Bugsnag.bugsnagClient "Page/Home.elm"
+    Bugsnag = Bugsnag.start "Page/Home.elm"
 
     Bugsnag.debug "Hitting the hats API." Dict.empty
 
@@ -89,15 +89,15 @@ type alias User =
         |> Bugsnag.error "Unexpected payload from the hats API."
 
 -}
-bugsnagClient : BugsnagConfig -> BugsnagClient
-bugsnagClient bugsnagConfig =
+start : BugsnagConfig -> BugsnagClient
+start bugsnagConfig =
     { error = notify bugsnagConfig Error
     , warning = notify bugsnagConfig Warning
     , info = notify bugsnagConfig Info
     }
 
 
-{-| Send a message to Bugsnag. [`bugsnagClient`](#bugsnagClient)
+{-| Send a message to bugsnag. [`start`](#start)
 provides a nice wrapper around this.
 
 Arguments:

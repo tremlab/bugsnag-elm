@@ -19,9 +19,9 @@ token =
     "12345abcde........"
 
 
-bugsnagClient : BugsnagClient
-bugsnagClient =
-    Bugsnag.bugsnagClient
+Bugsnag : BugsnagClient
+Bugsnag =
+    BugsnagElm.start
         { token = token
         , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
         , context = "Example" -- location, e.g. "Page.Customer.Login.Main"
@@ -76,7 +76,7 @@ update msg model =
 
 info : String -> Cmd Msg
 info message =
-    Task.attempt (\_ -> NoOp) (bugsnagClient.info message Dict.empty)
+    Task.attempt (\_ -> NoOp) (Bugsnag.info message Dict.empty)
 
 
 
