@@ -26,11 +26,11 @@ bugsnag =
         , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
         , context = "Example" -- location, e.g. "Page.Customer.Login.Main"
         , releaseStage = "test"
-        , enabledReleaseStages = ["production", "staging", "test"] -- remove "test" to see how unreported errors log in your concosle.
+        , enabledReleaseStages = ["production", "staging", "test"]
         , user =
             Just
                 { id = "42"
-                , username = "Leeroy Jenkins"
+                , username = "Grace Hopper"
                 , email = "support@bugsnag.com"
                 }
         }

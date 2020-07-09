@@ -26,7 +26,7 @@ import Task exposing (Task)
 {-| Functions preapplied with access tokens, scopes, and releaseStages,
 separated by [`Severity`](#Severity).
 
-Create one using [`start`](#start).
+Create one using [`start`](#start), and then throughout your app you can call `Bugsnag.error` to send the error report.
 
 -}
 type alias Bugsnag =
@@ -41,10 +41,10 @@ Applies to all error reports that may occur on the page,
 with error-specific data added later in `notify`
 
   - `token` - The [Bugsnag API token](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
-  - codeVersion -
+  - codeVersion - However your app identifies its versions, include it here as string
   - `context` - Scoping messages essentially namespaces them. For example, this might be the name of the page the user was on when the message was sent.
   - `releaseStage` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
-  - `enabledReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to simply log in console (e.g. "dev"). Empty list will report ALL error stages.
+  - `enabledReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to drop (e.g. "development"). Empty list will report ALL error stages.
   - 'user' - if available, report default user data (id, name, email)
 
 -}
@@ -77,10 +77,21 @@ type alias User =
     }
 
 
-{-| Return a [`Bugsnag`](#Bugsnag) record configured with the given
-[`Environment`](#Environment) and [`Scope`](#Scope) string.
+{-| Return a [`Bugsnag`](#Bugsnag) record configured with the given BugsnagConfig details.
 
-    Bugsnag = Bugsnag.start "Page/Home.elm"
+    BugsnagElm.start
+        { token = "abcdef1234...."
+        , codeVersion = "xyz0101010......"
+        , context = "Page.Customer.Login.Main"
+        , releaseStage = "test"
+        , enabledReleaseStages = ["production", "staging", "test"]
+        , user =
+            Just
+                { id = "42"
+                , username = "Grace Hopper"
+                , email = "support@bugsnag.com"
+                }
+        }
 
     Bugsnag.debug "Hitting the hats API." Dict.empty
 
@@ -107,11 +118,12 @@ Arguments:
   - `String` - message, e.g. "Auth server was down when user tried to sign in."
   - `Dict String Value` - arbitrary metadata, e.g. \`{"accountType": "premium"}
 
-If the message was successfully sent to Bugsnag
+If the message was successfully sent to Bugsnag, it returns `Task.succeed ()`
 
-Otherwise it fails
-with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/latest/Http#Error)
+Otherwise it fails with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/latest/Http#Error)
 responsible.
+
+    notify bugsnagConfig Error
 
 -}
 notify : BugsnagConfig -> Severity -> String -> Dict String Value -> Task Http.Error ()
