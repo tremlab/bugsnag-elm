@@ -5,7 +5,7 @@ version_in_internal=$(cat src/Bugsnag.elm | pcregrep -M "bugsnagElmVersion =\n  
 
 
 if [ "${version_in_elm_package_json}" != "${version_in_internal}" ]; then
-    echo "The value specified in Bugsnag.elm is not the same as the package version in elm.json. Please update it before publishing!"
+    echo "The value specified in BugsnagElm.elm is not the same as the package version in elm.json. Please update it before publishing!"
     exit 1
 else
     echo "Bugsnag.bugsnagElmVersion matches version in elm.json"
