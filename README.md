@@ -1,7 +1,7 @@
 # bugsnag-elm ![Build Status](https://travis-ci.org/NoRedInk/bugsnag-elm.svg?branch=master)
 
 ### What?
-Log Elm "errors" to bugsnag.
+Log Elm "errors" to bugsnag 🐛
 
 ### Why?
 The whole point of using Elm is to eliminate production errors.  So why would I need an error monitor? 🤷🏼‍♀️
@@ -26,7 +26,6 @@ Initialize bugsnag for your app:
       bugsnag = BugsnagElm.start
           { token = "abcdef1234...."
           , codeVersion = "xyz0101010......"
-          , context = "Page.Customer.Login.Main"
           , releaseStage = "test"
           , enabledReleaseStages = ["production", "staging", "test"]
           , user =
@@ -39,11 +38,16 @@ Initialize bugsnag for your app:
 
 Use it!
 
-      bugsnag.debug "Hitting the slothNinja API." Dict.empty
+      bugsnag.info
+        "Hitting the slothNinja API."
+        "PageCustomer.Login.Main"
+        Dict.empty
 
       [ ( "Payload", toString payload ) ]
           |> Dict.fromList
-          |> bugsnag.error "Unexpected payload from the slothNinja API."
+          |> bugsnag.error
+              "Unexpected payload from the slothNinja API."
+              "Page.Customer.Login.Main"
 
 Of course, this kind of side effect can only be triggered within an update function. If you are trying to capture a possible error state from anywhere else in your code, you may need to wrap that function's output in a `Result`, which can be bubbled up until the error can be sent from the update msg.
 

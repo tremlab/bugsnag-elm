@@ -8,7 +8,7 @@ module BugsnagElm exposing
 ### General example
 
     import BugsnagElm exposing (Bugsnag)
-    import Task
+    import Task exposing (Task)
 
     -- initialize bugsnag. You will probably need to pull values from the env or flags
     bugsnag : Bugsnag
@@ -16,7 +16,6 @@ module BugsnagElm exposing
         BugsnagElm.start
             { token = "abcdef1234...."
             , codeVersion = "xyz0101010......"
-            , context = "Page.Customer.Login.Main"
             , releaseStage = "test"
             , enabledReleaseStages = ["production", "staging", "test"]
             , user =
@@ -32,7 +31,10 @@ module BugsnagElm exposing
         .... ->
             -- log some debug info
             ( model
-            , bugsnag.info "Hitting the slothNinja API." Dict.empty
+            , bugsnag.info
+                "Hitting the slothNinja API."
+                "Page.Customer.Login.Main"
+                Dict.empty
                 |> Task.attempt (\() -> NoOp) -- convert the Task into a Cmd
             )
 
@@ -41,7 +43,9 @@ module BugsnagElm exposing
             ( model
             , [ ( "Payload", toString payload ) ]
                 |> Dict.fromList
-                |> bugsnag.error "Unexpected payload from the slothNinja API."
+                |> bugsnag.error
+                    "Unexpected payload from the slothNinja API."
+                    "Page.Customer.Login.Main"
                 |> Task.attempt (\() -> NoOp) -- convert the Task into a Cmd
             )
 
@@ -62,7 +66,7 @@ import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
 
 
-{-| Functions preapplied with access tokens, scopes, and releaseStages,
+{-| Functions preapplied with access token, code version, user info and releaseStage,
 separated by [`Severity`](#Severity).
 
 Create one using [`start`](#start), and then throughout your app you can call `bugsnag.error` to send the error report.
@@ -70,25 +74,24 @@ Create one using [`start`](#start), and then throughout your app you can call `b
 When calling any of the functions herein, it will return `Task.succeed ()` if the message was successfully sent to Bugsnag. Otherwise it fails with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/latest/Http#Error)
 responsible. I recommend you ignore the error in your code; although it is possible for the bugsnag api to go down, it is exceedingly rare, and not something worth disrupting your user's experience for.
 
-        bugsnag.error "problem accessing the database." Dict.empty
+        bugsnag.error "problem accessing the database." "Page.Checkout" Dict.empty
             |> Task.attempt (\() -> NoOp) -- convert the Task into a Cmd
 
 
 -}
 type alias Bugsnag =
-    { error : String -> Dict String Value -> Task Http.Error ()
-    , warning : String -> Dict String Value -> Task Http.Error ()
-    , info : String -> Dict String Value -> Task Http.Error ()
+    { error : String -> String ->  Dict String Value -> Task Http.Error ()
+    , warning : String -> String ->  Dict String Value -> Task Http.Error ()
+    , info : String -> String ->  Dict String Value -> Task Http.Error ()
     }
 
 
 {-| Basic data needed to define the local client for a BugsnagElm instance.
-Applies to all error reports that may occur on the page,
+Applies to all error reports that may occur in the app,
 with error-specific data added later in `notify`
 
   - `token` - The [Bugsnag API token](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
   - `codeVersion` - However your app identifies its versions, include it here as a string
-  - `context` - Scoping messages essentially namespaces them. For example, this might be the name of the page the user was on when the message was sent.
   - `releaseStage` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
   - `enabledReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to drop (e.g. "development"). Empty list will report ALL error stages.
   - `user` - if available, report default user data (id, name, email)
@@ -97,7 +100,6 @@ with error-specific data added later in `notify`
 type alias BugsnagConfig =
     { token : String
     , codeVersion : String
-    , context : String
     , releaseStage : String
     , enabledReleaseStages : List String
     , user : Maybe User
@@ -129,7 +131,6 @@ type alias User =
     bugsnag = BugsnagElm.start
         { token = "abcdef1234...."
         , codeVersion = "xyz0101010......"
-        , context = "Page.Customer.Login.Main"
         , releaseStage = "test"
         , enabledReleaseStages = ["production", "staging", "test"]
         , user =
@@ -155,22 +156,23 @@ provides a nice wrapper around this.
 Arguments:
 
   - `BugsnagConfig`
-  - `Severity` - severity, e.g. `Error`, `Warning`, `Debug`
+  - `Severity` - severity, one of: `Error`, `Warning`, or `Info`
   - `String` - message, e.g. "Auth server was down when user tried to sign in."
-  - `Dict String Value` - arbitrary metadata, e.g. \`{"accountType": "premium"}
+  - `String` - context, where the error occurred e.g. module or file name "Page.Customer.Login.Main"
+  - `Dict String Value` - arbitrary metadata, e.g. `{"accountType": "premium", "region": "NW"}
 
 If the message was successfully sent to Bugsnag, it returns `Task.succeed ()` Otherwise it fails with the [`Http.Error`](http://package.elm-lang.org/packages/elm-lang/http/latest/Http#Error)
-responsible. I recommend you ignore the error in your code; although it is possible for the bugsnag api to go down, it is exceedingly rare, and not something worth disrupting your user's experience for.
+responsible. I recommend you ignore this error in your code; although it is possible for the bugsnag api to go down, it is exceedingly rare, and not something worth disrupting your user's experience for.
 
-    notify bugsnagConfig Error
+    notify bugsnagConfig Error "cannot connect to database" "Page.Login" Dict.empty
 
 -}
-notify : BugsnagConfig -> Severity -> String -> Dict String Value -> Task Http.Error ()
-notify bugsnagConfig severity message metadata =
+notify : BugsnagConfig -> Severity -> String -> String -> Dict String Value -> Task Http.Error ()
+notify bugsnagConfig severity message context metadata =
     let
         body : Http.Body
         body =
-            toJsonBody bugsnagConfig severity message metadata
+            toJsonBody bugsnagConfig severity message context metadata
 
         shouldSend =
             List.isEmpty bugsnagConfig.enabledReleaseStages
@@ -237,15 +239,16 @@ bugsnagElmVersion =
 {-| Format all datapoints into JSON for bugsnag's api.
 While there are many restrictions, note that `metadata`
 can include any key/value pairs (including nested) you'd like to report.
-See <https://bugsnag.com/docs/api/items_post/> for schema
+See <https://bugsnag.com/docs/api/items_post/> for full schema details.
 -}
 toJsonBody :
     BugsnagConfig
     -> Severity
     -> String
+    -> String
     -> Dict String Value
     -> Http.Body
-toJsonBody bugsnagConfig severity message metadata =
+toJsonBody bugsnagConfig severity message context metadata =
     let
         userInfo =
             case bugsnagConfig.user of
@@ -283,7 +286,7 @@ toJsonBody bugsnagConfig severity message metadata =
                             ]
                         ]
                    )
-                 , ( "context", Encode.string bugsnagConfig.context )
+                 , ( "context", Encode.string context )
                  , ( "severity", Encode.string (severityToString severity) )
                  , ( "metadata"
                    , metadata
