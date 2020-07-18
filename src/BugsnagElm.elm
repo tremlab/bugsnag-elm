@@ -8,7 +8,7 @@ module BugsnagElm exposing
 ### General example
 
     import BugsnagElm exposing (Bugsnag)
-    import Task
+    import Task exposing (Task)
 
     -- initialize bugsnag. You will probably need to pull values from the env or flags
     bugsnag : Bugsnag
@@ -43,7 +43,9 @@ module BugsnagElm exposing
             ( model
             , [ ( "Payload", toString payload ) ]
                 |> Dict.fromList
-                |> bugsnag.error "Unexpected payload from the slothNinja API." "Page.Customer.Login.Main"
+                |> bugsnag.error
+                    "Unexpected payload from the slothNinja API."
+                    "Page.Customer.Login.Main"
                 |> Task.attempt (\() -> NoOp) -- convert the Task into a Cmd
             )
 
