@@ -1,6 +1,6 @@
 {
     "type": "package",
-    "name": "NoRedInk/bugsnag-elm",
+    "name": "tremlab/bugsnag-elm",
     "summary": "Send error reports to bugsnag",
     "license": "BSD-3-Clause",
     "version": "1.0.0",
