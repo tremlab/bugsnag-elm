@@ -1,7 +1,7 @@
 module Example exposing (main)
 
 import Browser
-import Bugsnag exposing (BugsnagClient)
+import BugsnagElm exposing (Bugsnag)
 import Dict
 import Html exposing (..)
 import Html.Attributes exposing (value)
@@ -19,18 +19,18 @@ token =
     "12345abcde........"
 
 
-bugsnagClient : BugsnagClient
-bugsnagClient =
-    Bugsnag.bugsnagClient
+bugsnag : Bugsnag
+bugsnag =
+    BugsnagElm.start
         { token = token
         , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
         , context = "Example" -- location, e.g. "Page.Customer.Login.Main"
         , releaseStage = "test"
-        , notifyReleaseStages = ["production", "staging", "test"] -- remove "test" to see how unreported errors log in your concosle.
+        , enabledReleaseStages = ["production", "staging", "test"]
         , user =
             Just
                 { id = "42"
-                , username = "Leeroy Jenkins"
+                , username = "Grace Hopper"
                 , email = "support@bugsnag.com"
                 }
         }
@@ -76,7 +76,7 @@ update msg model =
 
 info : String -> Cmd Msg
 info message =
-    Task.attempt (\_ -> NoOp) (bugsnagClient.info message Dict.empty)
+    Task.attempt (\_ -> NoOp) (bugsnag.info message Dict.empty)
 
 
 
