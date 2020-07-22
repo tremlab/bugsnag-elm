@@ -23,7 +23,7 @@ bugsnag : Bugsnag
 bugsnag =
     BugsnagElm.start
         { apiKey = apiKey
-        , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
+        , appVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
         , releaseStage = "test"
         , enabledReleaseStages = ["production", "staging", "test"]
         , user =

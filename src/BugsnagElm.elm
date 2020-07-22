@@ -15,7 +15,7 @@ module BugsnagElm exposing
     bugsnug =
         BugsnagElm.start
             { apiKey = "abcdef1234...."
-            , codeVersion = "xyz0101010......"
+            , appVersion = "xyz0101010......"
             , releaseStage = "test"
             , enabledReleaseStages = ["production", "staging", "test"]
             , user =
@@ -91,7 +91,7 @@ Applies to all error reports that may occur in the app,
 with error-specific data added later in `notify`
 
   - `apiKey` - The [Bugsnag API apiKey](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
-  - `codeVersion` - However your app identifies its versions, include it here as a string
+  - `appVersion` - However your app identifies its versions, include it here as a string
   - `releaseStage` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
   - `enabledReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to drop (e.g. "development"). Empty list will report ALL error stages.
   - `user` - if available, report default user data (id, name, email)
@@ -99,7 +99,7 @@ with error-specific data added later in `notify`
 -}
 type alias BugsnagConfig =
     { apiKey : String
-    , codeVersion : String
+    , appVersion : String
     , releaseStage : String
     , enabledReleaseStages : List String
     , user : Maybe User
@@ -130,7 +130,7 @@ type alias User =
 
     bugsnag = BugsnagElm.start
         { apiKey = "abcdef1234...."
-        , codeVersion = "xyz0101010......"
+        , appVersion = "xyz0101010......"
         , releaseStage = "test"
         , enabledReleaseStages = ["production", "staging", "test"]
         , user =
@@ -294,7 +294,7 @@ toJsonBody bugsnagConfig severity message context metadata =
                    )
                  , ( "app"
                    , Encode.object
-                        [ ( "version", Encode.string bugsnagConfig.codeVersion )
+                        [ ( "version", Encode.string bugsnagConfig.appVersion )
                         , ( "releaseStage", Encode.string bugsnagConfig.releaseStage )
                         , ( "type", Encode.string "elm" )
                         ]
