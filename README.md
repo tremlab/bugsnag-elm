@@ -19,13 +19,13 @@ TLDR:
 
 Install the package from your terminal:
 
-      elm install elm/bugsnag-elm
+      elm install tremlab/bugsnag-elm
 
 Initialize bugsnag for your app:
 
       bugsnag = BugsnagElm.start
-          { token = "abcdef1234...."
-          , codeVersion = "xyz0101010......"
+          { apiKey = "abcdef1234...."
+          , appVersion = "xyz0101010......"
           , releaseStage = "test"
           , enabledReleaseStages = ["production", "staging", "test"]
           , user =

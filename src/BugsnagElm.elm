@@ -14,8 +14,8 @@ module BugsnagElm exposing
     bugsnag : Bugsnag
     bugsnug =
         BugsnagElm.start
-            { token = "abcdef1234...."
-            , codeVersion = "xyz0101010......"
+            { apiKey = "abcdef1234...."
+            , appVersion = "xyz0101010......"
             , releaseStage = "test"
             , enabledReleaseStages = ["production", "staging", "test"]
             , user =
@@ -66,7 +66,7 @@ import Json.Encode as Encode exposing (Value)
 import Task exposing (Task)
 
 
-{-| Functions preapplied with access token, code version, user info and releaseStage,
+{-| Functions preapplied with apiKey, code version, user info and releaseStage,
 separated by [`Severity`](#Severity).
 
 Create one using [`start`](#start), and then throughout your app you can call `bugsnag.error` to send the error report.
@@ -90,16 +90,16 @@ type alias Bugsnag =
 Applies to all error reports that may occur in the app,
 with error-specific data added later in `notify`
 
-  - `token` - The [Bugsnag API token](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
-  - `codeVersion` - However your app identifies its versions, include it here as a string
+  - `apiKey` - The [Bugsnag API apiKey](https://Bugsnag.com/docs/api/#authentication) required to authenticate the request.
+  - `appVersion` - However your app identifies its versions, include it here as a string
   - `releaseStage` - usually `"production"`, `"development"`, `"staging"`, etc., but bugsnag accepts any value
   - `enabledReleaseStages` - explictly define which stages you want to report, omitting any you'd prefer to drop (e.g. "development"). Empty list will report ALL error stages.
   - `user` - if available, report default user data (id, name, email)
 
 -}
 type alias BugsnagConfig =
-    { token : String
-    , codeVersion : String
+    { apiKey : String
+    , appVersion : String
     , releaseStage : String
     , enabledReleaseStages : List String
     , user : Maybe User
@@ -129,8 +129,8 @@ type alias User =
 {-| Return a [`Bugsnag`](#Bugsnag) record configured with the given BugsnagConfig details.
 
     bugsnag = BugsnagElm.start
-        { token = "abcdef1234...."
-        , codeVersion = "xyz0101010......"
+        { apiKey = "abcdef1234...."
+        , appVersion = "xyz0101010......"
         , releaseStage = "test"
         , enabledReleaseStages = ["production", "staging", "test"]
         , user =
@@ -182,7 +182,7 @@ notify bugsnagConfig severity message context metadata =
         True ->
             { method = "POST"
             , headers =
-                [ Http.header "Bugsnag-Api-Key" bugsnagConfig.token
+                [ Http.header "Bugsnag-Api-Key" bugsnagConfig.apiKey
                 , Http.header "Bugsnag-Payload-Version" "5"
                 ]
             , url = endpointUrl
@@ -294,7 +294,7 @@ toJsonBody bugsnagConfig severity message context metadata =
                    )
                  , ( "app"
                    , Encode.object
-                        [ ( "version", Encode.string bugsnagConfig.codeVersion )
+                        [ ( "version", Encode.string bugsnagConfig.appVersion )
                         , ( "releaseStage", Encode.string bugsnagConfig.releaseStage )
                         , ( "type", Encode.string "elm" )
                         ]
