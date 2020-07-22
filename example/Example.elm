@@ -10,8 +10,8 @@ import Json.Encode
 import Task
 
 
-token : String
-token =
+apiKey : String
+apiKey =
     -- The api key to the Bugsnag project you want to report errors to.
     -- Bugsnag doesn't formally support Elm, so create a generic JS project.
     -- Bugsnag offers free single-user accounts - go ahead and play around!
@@ -22,7 +22,7 @@ token =
 bugsnag : Bugsnag
 bugsnag =
     BugsnagElm.start
-        { token = token
+        { apiKey = apiKey
         , codeVersion = "24dcf3a9a9cf1a5e2ea319018644a68f4743a731"
         , releaseStage = "test"
         , enabledReleaseStages = ["production", "staging", "test"]
